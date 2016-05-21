@@ -62,7 +62,7 @@ class AdBlockProxy < WEBrick::HTTPProxyServer
   end
 
   def blocked?(host)
-    if @running
+    if @running && host != nil
   	  hosts = host.split('.')
   	  while !hosts.empty?
   		  hostname = hosts.join '.'
