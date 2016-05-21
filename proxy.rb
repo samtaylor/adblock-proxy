@@ -9,6 +9,7 @@ class AdBlockProxy < WEBrick::HTTPProxyServer
   def initialize(options)
   	super
   	@blocked = Set.new
+    @running = true
   end
 
   def load_blocked(filename)
@@ -21,8 +22,13 @@ class AdBlockProxy < WEBrick::HTTPProxyServer
 
   def do_GET(request, response)
     if "adblock.proxy" == request.host
+      if request.query['pause']
+        @running = false
+      elsif request.query['resume']
+        @running = true
+      end
       response.status = 200
-      response.body = "OK"
+      response.body = "Status: #{@running ? 'Running' : 'Paused'}"
       return
     end
 
@@ -42,24 +48,25 @@ class AdBlockProxy < WEBrick::HTTPProxyServer
   	  response.status = 204
   	  response.keep_alive = false
   	else
-      logger.info "ALLOW #{host}"
   	  super
   	end
   end
 
   def blocked?(host)
-  	hosts = host.split('.')
-  	while !hosts.empty?
-  		hostname = hosts.join '.'
-  		return true if @blocked.include?(hostname)
-  		hosts.shift
-  	end
+    if @running
+  	  hosts = host.split('.')
+  	  while !hosts.empty?
+  		  hostname = hosts.join '.'
+  		  return true if @blocked.include?(hostname)
+  		  hosts.shift
+  	  end
+    end
   	false
   end
 
 end
 
-server = AdBlockProxy.new(:Port => 3126, :AccessLog => [])
+server = AdBlockProxy.new(:Port => 8081, :AccessLog => [])
 
 trap("INT"){server.shutdown}
 trap("TERM"){server.shutdown}
